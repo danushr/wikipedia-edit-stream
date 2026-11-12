@@ -6,8 +6,8 @@ trap 'rm -rf "$STREAM_DATA_DIR"' EXIT
 
 uv run pytest -q
 uv run python -m stream.producer --replay "$STREAM_PROJECT_DIR/sample/recentchange_sample.jsonl" --limit 1000
-( sleep 100; for p in $(jps -q); do jcmd "$p" Thread.print 2>&1 | grep -A22 -E 'stream execution thread|Executor task launch' | head -120; done ) &
-timeout 150 uv run python -m stream.run --once
+( sleep 60; jps -l; for p in $(jps -q); do jcmd "$p" Thread.print 2>&1 | grep -A40 -E 'stream execution thread' | head -200; done ) &
+timeout -s KILL 150 uv run python -m stream.run --once
 uv run python - <<'PY'
 from deltalake import DeltaTable
 from stream import paths
