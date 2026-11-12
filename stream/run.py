@@ -79,3 +79,6 @@ if __name__ == "__main__":
             spark.stop()
             raise SystemExit(1)
         x.awaitTermination()
+    if a.once:
+        for t in ("bronze_events", "silver_events", "dead_letter", "gold_edits_per_minute"):
+            print(t, spark.read.format("delta").load(str(paths.LAKE_DIR / t)).count(), flush=True)

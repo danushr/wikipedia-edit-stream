@@ -6,11 +6,5 @@ trap 'rm -rf "$STREAM_DATA_DIR"' EXIT
 
 uv run pytest -q
 uv run python -m stream.producer --replay "$STREAM_PROJECT_DIR/sample/recentchange_sample.jsonl" --limit 1000
-( sleep 60; jps -l; for p in $(jps -q); do jcmd "$p" Thread.print 2>&1 | grep -A40 -E 'stream execution thread' | head -200; done ) &
-timeout -s KILL 150 uv run python -m stream.run --once
-uv run python - <<'PY'
-from deltalake import DeltaTable
-from stream import paths
-n = DeltaTable(str(paths.LAKE_DIR / "silver_events")).to_pyarrow_table().num_rows
-assert n == 1000, n
-PY
+uv run python -m stream.run --once | tee "$STREAM_DATA_DIR/run.log"
+grep -qx "silver_events 1000" "$STREAM_DATA_DIR/run.log"
