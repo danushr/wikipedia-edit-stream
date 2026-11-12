@@ -28,3 +28,15 @@ def parse(raw):
     )
     bad = p.where(F.col("reason").isNotNull()).select("value", "reason")
     return good, bad
+
+
+def per_minute(events):
+    return (
+        events.groupBy("wiki", F.window("event_time", "1 minute"))
+        .agg(
+            F.count("*").alias("edits"),
+            F.sum(F.col("is_bot").cast("int")).alias("bot_edits"),
+            F.coalesce(F.sum("bytes_changed"), F.lit(0)).alias("bytes_changed"),
+        )
+        .select("wiki", F.col("window.start").alias("window_start"), "edits", "bot_edits", "bytes_changed")
+    )
