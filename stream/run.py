@@ -75,7 +75,7 @@ if __name__ == "__main__":
     queries = run(spark, paths.KAFKA_BOOTSTRAP, paths.KAFKA_TOPIC, once=a.once)
     for x in queries:
         if a.once and not x.awaitTermination(180):
-            print("stuck:", x.name, x.status, x.lastProgress, flush=True)
+            print("stuck:", x.name, flush=True)
             spark.stop()
             raise SystemExit(1)
         x.awaitTermination()
