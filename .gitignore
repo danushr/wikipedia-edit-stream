@@ -1,0 +1,14 @@
+.env
+.env.local
+.venv
+__pycache__
+node_modules
+.direnv
+result
+.devenv
+devenv.local.nix
+data/
+spark-warehouse/
+metastore_db/
+derby.log
+.pytest_cache/
