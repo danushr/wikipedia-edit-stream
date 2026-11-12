@@ -15,6 +15,7 @@ def get_spark(app="wikipedia-edit-stream"):
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
         .config("spark.sql.shuffle.partitions", "4")
         .config("spark.ui.enabled", "false")
+        .config("spark.ui.showConsoleProgress", "false")
         .config("spark.sql.session.timeZone", "UTC")
     )
     return configure_spark_with_delta_pip(b, extra_packages=[KAFKA_PACKAGE]).getOrCreate()

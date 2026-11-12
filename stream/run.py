@@ -19,7 +19,9 @@ def _start(df, lake, cks, name, once, mode="append"):
         .queryName(name)
     )
     w = w.trigger(availableNow=True) if once else w.trigger(processingTime="10 seconds")
-    return w.start(str(lake / name))
+    q = w.start(str(lake / name))
+    print(f"started {name}", flush=True)
+    return q
 
 
 def _wait_for_first_commit(lake, name):
@@ -46,6 +48,7 @@ def run(spark, bootstrap, topic, lake=paths.LAKE_DIR, cks=paths.CHECKPOINT_DIR, 
     q = [_start(bronze, lake, cks, "bronze_events", once)]
     if once:
         q[0].awaitTermination()
+        print("bronze done", flush=True)
 
     _wait_for_first_commit(lake, "bronze_events")
     raw = spark.readStream.format("delta").load(str(lake / "bronze_events")).select("value")
@@ -55,6 +58,7 @@ def run(spark, bootstrap, topic, lake=paths.LAKE_DIR, cks=paths.CHECKPOINT_DIR, 
     if once:
         for x in q[1:]:
             x.awaitTermination()
+        print("silver and dead letter done", flush=True)
 
     _wait_for_first_commit(lake, "silver_events")
     events = spark.readStream.format("delta").load(str(lake / "silver_events"))
