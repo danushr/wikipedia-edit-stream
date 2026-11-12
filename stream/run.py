@@ -1,4 +1,5 @@
 import argparse
+import time
 
 from pyspark.sql import functions as F
 
@@ -21,6 +22,12 @@ def _start(df, lake, cks, name, once, mode="append"):
     return w.start(str(lake / name))
 
 
+def _wait_for_first_commit(lake, name):
+    first = lake / name / "_delta_log" / "00000000000000000000.json"
+    while not first.exists():
+        time.sleep(1)
+
+
 def run(spark, bootstrap, topic, lake=paths.LAKE_DIR, cks=paths.CHECKPOINT_DIR, once=False):
     kafka = (
         spark.readStream.format("kafka")
@@ -40,6 +47,7 @@ def run(spark, bootstrap, topic, lake=paths.LAKE_DIR, cks=paths.CHECKPOINT_DIR, 
     if once:
         q[0].awaitTermination()
 
+    _wait_for_first_commit(lake, "bronze_events")
     raw = spark.readStream.format("delta").load(str(lake / "bronze_events")).select("value")
     good, bad = parse(raw)
     silver = good.withWatermark("event_time", SILVER_WATERMARK).dropDuplicatesWithinWatermark(["event_id"])
@@ -48,6 +56,7 @@ def run(spark, bootstrap, topic, lake=paths.LAKE_DIR, cks=paths.CHECKPOINT_DIR, 
         for x in q[1:]:
             x.awaitTermination()
 
+    _wait_for_first_commit(lake, "silver_events")
     events = spark.readStream.format("delta").load(str(lake / "silver_events"))
     gold = per_minute(events.withWatermark("event_time", GOLD_WATERMARK))
     q.append(_start(gold, lake, cks, "gold_edits_per_minute", once))
